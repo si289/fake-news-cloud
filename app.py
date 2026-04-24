@@ -1,66 +1,66 @@
-from flask import Flask, render_template, request
-from predict import predict_news
-import requests
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import pickle
+import os
 
+# Initialize app
 app = Flask(__name__)
+CORS(app)   # ✅ Allows Netlify frontend to connect
 
-# ✅ NewsData.io API Key
-API_KEY = "pub_16abcf8ded784efdadf48ab9e7cd3574"
+# Load ML model
+model_path = "model.pkl"
 
-# ------------------------------
-# Home Page
-# ------------------------------
+if not os.path.exists(model_path):
+    raise FileNotFoundError("model.pkl file not found!")
+
+model = pickle.load(open(model_path, "rb"))
+
+# Home route
 @app.route("/")
 def home():
-    return render_template("index.html")
+    return "✅ Fake News Detection API is Running"
 
-# ------------------------------
-# Manual News Prediction
-# ------------------------------
+# Prediction route (for Netlify frontend)
 @app.route("/predict", methods=["POST"])
 def predict():
-    news_text = request.form["news"]
+    try:
+        data = request.get_json()
 
-    prediction, category, confidence = predict_news(news_text)
+        if not data or "news" not in data:
+            return jsonify({"error": "No news text provided"}), 400
 
-    return render_template(
-        "index.html",
-        prediction=prediction,
-        category=category,
-        confidence=confidence
-    )
+        text = data["news"]
 
-# ------------------------------
-# 🔴 Live News Detection
-# ------------------------------
+        # Prediction
+        prediction = model.predict([text])[0]
+
+        # Optional: Convert output to readable format
+        if str(prediction) == "0":
+            result = "Fake News ❌"
+        else:
+            result = "Real News ✅"
+
+        return jsonify({
+            "result": result
+        })
+
+    except Exception as e:
+        return jsonify({
+            "error": str(e)
+        }), 500
+
+
+# Optional: Live news route (only if you implemented it)
 @app.route("/live-news")
 def live_news():
-    url = f"https://newsdata.io/api/1/news?apikey={API_KEY}&country=in&language=en"
+    return "Live News Feature Coming Soon 🚀"
 
-    response = requests.get(url)
-    data = response.json()
 
-    results = []
-
-    if "results" in data:
-        for article in data["results"][:5]:
-            title = article.get("title", "")
-            description = article.get("description", "")
-
-            news_text = title + " " + str(description)
-
-            prediction, category, confidence = predict_news(news_text)
-
-            results.append({
-                "title": title,
-                "prediction": prediction,
-                "category": category,
-                "confidence": confidence,
-                "source": article.get("source_id", "Unknown"),
-                "link": article.get("link", "#")
-            })
-
-    return render_template("live_news.html", results=results)
-
+# Run app
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(debug=True)
+
+
+
+
+            
