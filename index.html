@@ -35,21 +35,19 @@
 
     <h1>📰 Fake News Detection</h1>
 
-    <form action="/predict" method="POST">
-        <textarea name="news" placeholder="Enter news here..."></textarea><br>
-        <button type="submit">Check News</button>
-    </form>
-    
-    <!-- ✅ Live News Detection Button -->
-    <a href="/live-news">
+    <!-- Text Area -->
+    <textarea id="newsInput" placeholder="Enter news here..."></textarea><br>
+
+    <!-- Button -->
+    <button onclick="checkNews()">Check News</button>
+
+    <!-- Result -->
+    <p id="result"></p>
+
+    <!-- Live News Button (optional) -->
+    <a href="https://fake-news-cloud-3.onrender.com/live-news" target="_blank">
         <button class="live-btn">🔴 Live News Detection</button>
     </a>
-
-    {% if prediction %}
-        <h2>Prediction: {{ prediction }}</h2>
-        <h3>Category: {{ category }}</h3>
-        <h3>Confidence: {{ confidence }}%</h3>
-    {% endif %}
 
     <script src="script.js"></script>
 
