@@ -1,69 +1,55 @@
-from flask import Flask, render_template, request
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 from predict import predict_news
-import requests
 
+# Initialize Flask app
 app = Flask(__name__)
 
-# ✅ NewsData.io API Key
-API_KEY = "pub_16abcf8ded784efdadf48ab9e7cd3574"
+# Enable CORS (VERY IMPORTANT for frontend connection)
+CORS(app)
 
-# ------------------------------
-# Home Page
-# ------------------------------
-@app.route("/")
+# Home route (optional - for testing server)
+@app.route('/')
 def home():
-    return render_template("index.html")
+    return "Fake News Detection API is running..."
 
-# ------------------------------
-# Manual News Prediction
-# ------------------------------
-@app.route("/predict", methods=["POST"])
+# 🔍 Prediction Route
+@app.route('/predict', methods=['POST'])
 def predict():
-    news_text = request.form["news"]
+    try:
+        # Get JSON data from frontend
+        data = request.get_json()
 
-    prediction, category, confidence = predict_news(news_text)
-
-    return render_template(
-        "index.html",
-        prediction=prediction,
-        category=category,
-        confidence=confidence
-    )
-# ------------------------------
-# 🔴 Live News Detection
-# ------------------------------
-@app.route("/live-news")
-def live_news():
-    url = f"https://newsdata.io/api/1/news?apikey={API_KEY}&country=in&language=en"
-
-    response = requests.get(url)
-    data = response.json()
-
-    results = []
-
-    if "results" in data:
-        for article in data["results"][:5]:
-            title = article.get("title", "")
-            description = article.get("description", "")
-            news_text = title + " " + str(description)
-
-            prediction, category, confidence = predict_news(news_text)
-
-            results.append({
-                "title": title,
-                "prediction": prediction,
-                "category": category,
-                "confidence": confidence,
-                "source": article.get("source_id", "Unknown"),
-                "link": article.get("link", "#")
+        if not data:
+            return jsonify({
+                "prediction": "Error",
+                "confidence": 0,
+                "message": "No input data received"
             })
 
-    return render_template("live_news.html", results=results)
+        # Get text
+        text = data.get("text")
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
-   
-           
+        if not text or text.strip() == "":
+            return jsonify({
+                "prediction": "Error",
+                "confidence": 0,
+                "message": "Empty input"
+            })
+
+        # Call predict function
+        result = predict_news(text)
+
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({
+            "prediction": "Error",
+            "confidence": 0,
+            "message": str(e)
+        })
 
 
-        
+# Run server
+if __name__ == '__main__':
+    app.run(debug=True)
