@@ -1,69 +1,42 @@
-import pickle
-import os
+# predict.py
 
-# Get current directory path
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
 
-# Load model and vectorizer
-model_path = os.path.join(BASE_DIR, "model.pkl")
-vectorizer_path = os.path.join(BASE_DIR, "vectorizer.pkl")
+# 🔹 Sample dataset (you can replace later with real dataset)
+data = {
+    "text": [
+        "Breaking: Government passes new education policy",
+        "Shocking! Celebrity caught in scandal",
+        "NASA launches new satellite successfully",
+        "You won't believe what happened next!!!",
+        "Scientists discover cure for disease",
+        "Click here to win lottery now!!!"
+    ],
+    "label": [
+        "REAL",
+        "FAKE",
+        "REAL",
+        "FAKE",
+        "REAL",
+        "FAKE"
+    ]
+}
 
-# Load files safely
-try:
-    with open(model_path, "rb") as f:
-        model = pickle.load(f)
+df = pd.DataFrame(data)
 
-    with open(vectorizer_path, "rb") as f:
-        vectorizer = pickle.load(f)
+# 🔹 Convert text to vectors
+vectorizer = TfidfVectorizer()
+X = vectorizer.fit_transform(df["text"])
 
-except Exception as e:
-    print("Error loading model or vectorizer:", e)
-    model = None
-    vectorizer = None
-
-
-# 🔍 Prediction Function
-def predict_news(text):
-    if model is None or vectorizer is None:
-        return {
-            "prediction": "Error",
-            "confidence": 0
-        }
-
-    try:
-        # Transform input text
-        text_vector = vectorizer.transform([text])
-
-        # Predict
-        prediction = model.predict(text_vector)[0]
-
-        # Get probability if available
-        if hasattr(model, "predict_proba"):
-            prob = model.predict_proba(text_vector)[0]
-            confidence = max(prob)
-        else:
-            confidence = 0
-
-        # Convert result
-        if prediction == 1:
-            result = "Real News"
-        else:
-            result = "Fake News"
-
-        return {
-            "prediction": result,
-            "confidence": round(confidence * 100, 2)
-        }
-
-    except Exception as e:
-        return {
-            "prediction": "Error",
-            "confidence": 0,
-            "message": str(e)
-        }
-    
-    
- 
+# 🔹 Train model
+model = LogisticRegression()
+model.fit(X, df["label"])
 
 
-
+# 🔹 Prediction function
+def predict_news(news_text):
+    news_vector = vectorizer.transform([news_text])
+    prediction = model.predict(news_vector)[0]
+    return prediction

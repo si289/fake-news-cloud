@@ -2,54 +2,26 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from predict import predict_news
 
-# Initialize Flask app
 app = Flask(__name__)
+CORS(app)  # 🔥 important for Netlify connection
 
-# Enable CORS (VERY IMPORTANT for frontend connection)
-CORS(app)
-
-# Home route (optional - for testing server)
 @app.route('/')
 def home():
-    return "Fake News Detection API is running..."
+    return "Fake News Detection API Running"
 
-# 🔍 Prediction Route
 @app.route('/predict', methods=['POST'])
 def predict():
-    try:
-        # Get JSON data from frontend
-        data = request.get_json()
+    data = request.get_json()
 
-        if not data:
-            return jsonify({
-                "prediction": "Error",
-                "confidence": 0,
-                "message": "No input data received"
-            })
+    if not data or 'text' not in data:
+        return jsonify({"error": "No text provided"}), 400
 
-        # Get text
-        text = data.get("text")
+    news_text = data['text']
+    result = predict_news(news_text)
 
-        if not text or text.strip() == "":
-            return jsonify({
-                "prediction": "Error",
-                "confidence": 0,
-                "message": "Empty input"
-            })
+    return jsonify({
+        "prediction": result
+    })
 
-        # Call predict function
-        result = predict_news(text)
-
-        return jsonify(result)
-
-    except Exception as e:
-        return jsonify({
-            "prediction": "Error",
-            "confidence": 0,
-            "message": str(e)
-        })
-
-
-# Run server
 if __name__ == '__main__':
     app.run(debug=True)
